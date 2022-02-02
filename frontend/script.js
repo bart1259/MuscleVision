@@ -119,7 +119,10 @@ loadingInterval = setInterval(() => {
     clearInterval(loadingInterval)
   }
 
-  canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);
+  // Motion blur
+  canvasCtx.fillStyle = 'rgba(26, 26, 26, 0.7)';
+  canvasCtx.fillRect(0,0,WIDTH,HEIGHT)
+
   canvasCtx.fillStyle = `red`;
 
   for (let i = 0; i < dots.length; i++) {
@@ -139,11 +142,18 @@ loadingInterval = setInterval(() => {
 
 }, 1000 / 60)
 
-let dots = []
-for (let i = 0; i < 200; i++) {
-  dots[i] = [Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5];
-  dots[i] = math.multiply(dots[i], 1.0 / math.norm(dots[i]))
+const POINT_COUNT = 200
+let dots = dumbellPoints
+while (dots.length >= POINT_COUNT) {
+  dots.splice(Math.round(dots.length * Math.random()) ,1)
 }
+
+// SPHERE GENERATION
+// let dots = []
+// for (let i = 0; i < 200; i++) {
+//   dots[i] = [Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5];
+//   dots[i] = math.multiply(dots[i], 1.0 / math.norm(dots[i]))
+// }
 
 function doProjection(pt) {
   npt = math.clone(pt)
@@ -160,8 +170,6 @@ function doProjection(pt) {
 }
 
 function createProjectionMatrix() {
-  let w = 1.0
-  let h = w * HEIGHT / WIDTH
   let fov = 45;
   let sx = 1/Math.tan((fov / 2) * (Math.PI / 180))
   let sy = 1/Math.tan((fov * HEIGHT / WIDTH / 2) * (Math.PI / 180))
