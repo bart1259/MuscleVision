@@ -1,11 +1,16 @@
 const videoElement = document.getElementsByClassName('input_video')[0];
 const canvasElement = document.getElementsByClassName('output_canvas')[0];
 const canvasCtx = canvasElement.getContext('2d');
+const canvasCtx3d = canvasElement.getContext('webgl');
 const landmarkContainer = document.getElementsByClassName('landmark-grid-container')[0];
 let lastFrame = Date.now();
+let loadingModel = true;
 
 const WIDTH = 1280;
 const HEIGHT = 720;
+
+canvasElement.width = WIDTH;
+canvasElement.height = HEIGHT;
 
 function render(frame, landmarks, ctx, flip_x) {
 
@@ -19,6 +24,7 @@ function render(frame, landmarks, ctx, flip_x) {
         canvasCtx.drawImage(frame, 0, 0, WIDTH, HEIGHT);
     }
 
+    // If there are no landmarks don't render points
     if(!landmarks){
         return;
     }
@@ -35,7 +41,7 @@ function render(frame, landmarks, ctx, flip_x) {
     // Draw connections
     ctx.lineWidth = 2
     POSE_CONNECTIONS.forEach(line => {
-      // Gradient code
+      // Gradient calculations
       let gradient = ctx.createLinearGradient(WIDTH * landmarks[line[0]].x, HEIGHT * landmarks[line[0]].y, WIDTH * landmarks[line[1]].x, HEIGHT * landmarks[line[1]].y);
       ctx.strokeStyle = gradient;
       let col1 = `rgb(255, ${Math.round(255 * landmarks[line[0]].visibility)}, ${Math.round(255 * landmarks[line[0]].visibility)})`;
@@ -62,8 +68,13 @@ function drawFPS(ctx){
 }
 
 function onResults(results) {
+    if(loadingModel) {
+      loadingModel = false;
+    }
 
-    let flip_x = $('.mirrorXCheckbox').is(":checked");
+    let flip_x = true;
+    //TODO: Fixme
+    //let flip_x = $('.mirrorXCheckbox').is(":checked");
 
     //Draw frame
     if(flip_x && results.poseLandmarks) {
@@ -98,3 +109,70 @@ const camera = new Camera(videoElement, {
   height: HEIGHT
 });
 camera.start();
+
+/////////////////// LOADING SCREEN ////////////////////
+
+const SPHERE_CENTER = math.matrix([0,0,-8])
+let tick = 0;
+loadingInterval = setInterval(() => {
+  if(loadingModel == false) {
+    clearInterval(loadingInterval)
+  }
+
+  canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);
+  canvasCtx.fillStyle = `red`;
+
+  for (let i = 0; i < dots.length; i++) {
+
+    dots[i] = math.rotate(dots[i], 0.01, [0,-1,0])
+    const dot = math.add(dots[i], SPHERE_CENTER)._data
+
+    let loc;
+    if(loc = doProjection(dot)){
+      canvasCtx.beginPath();
+      canvasCtx.arc(loc._data[0], loc._data[1], 50 / math.norm(dot), 0, 2.0 * Math.PI);
+      canvasCtx.fill();
+    }
+  }
+
+  tick++;
+
+}, 1000 / 60)
+
+let dots = []
+for (let i = 0; i < 200; i++) {
+  dots[i] = [Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5];
+  dots[i] = math.multiply(dots[i], 1.0 / math.norm(dots[i]))
+}
+
+function doProjection(pt) {
+  npt = math.clone(pt)
+  npt.push(1)
+  let ret = math.multiply(projMatrix, math.clone(npt))
+  if(ret._data[2] < 0) {
+    return false;
+  }
+  ret = math.multiply(ret, 1/ret._data[3])
+  ret._data[0] = (ret._data[0] * WIDTH / 2) + (WIDTH / 2)
+  ret._data[1] = (ret._data[1] * HEIGHT / 2) + (HEIGHT / 2)
+
+  return ret
+}
+
+function createProjectionMatrix() {
+  let w = 1.0
+  let h = w * HEIGHT / WIDTH
+  let fov = 45;
+  let sx = 1/Math.tan((fov / 2) * (Math.PI / 180))
+  let sy = 1/Math.tan((fov * HEIGHT / WIDTH / 2) * (Math.PI / 180))
+  return math.matrix([
+    [sx,0,0,0],
+    [0,sy,0,0],
+    [0,0,-(FAR+NEAR)/(FAR-NEAR),-2*(FAR*NEAR)/(FAR-NEAR)],
+    [0,0,-1,0]
+  ])
+}
+
+const FAR = 1.0;
+const NEAR = 0.01;
+projMatrix = createProjectionMatrix()
