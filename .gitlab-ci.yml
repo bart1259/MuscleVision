@@ -1,0 +1,7 @@
+image: alpine:latest
+pages:
+    script:
+        - echo 'Nothing to do...'
+    artifacts:
+        paths:
+            - frontend
