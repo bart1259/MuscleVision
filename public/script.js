@@ -6,11 +6,21 @@ const landmarkContainer = document.getElementsByClassName('landmark-grid-contain
 let lastFrame = Date.now();
 let loadingModel = true;
 
-const WIDTH = 1280;
-const HEIGHT = 720;
+let WIDTH, HEIGHT;
 
-canvasElement.width = WIDTH;
-canvasElement.height = HEIGHT;
+function setSize(width, height) {
+  if(WIDTH == width && HEIGHT == height){
+    return
+  }
+
+  WIDTH = width;
+  HEIGHT = height;
+
+  canvasElement.width = WIDTH;
+  canvasElement.height = HEIGHT;
+
+  projMatrix = createProjectionMatrix()
+}
 
 function render(frame, landmarks, ctx, flip_x) {
 
@@ -88,27 +98,47 @@ function onResults(results) {
     drawFPS(canvasCtx);
 }
 
-const pose = new Pose({locateFile: (file) => {
-  return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
-}});
-pose.setOptions({
-  modelComplexity: 1,
-  smoothLandmarks: true,
-  enableSegmentation: true,
-  smoothSegmentation: true,
-  minDetectionConfidence: 0.5,
-  minTrackingConfidence: 0.5
-});
-pose.onResults(onResults);
+async function loadModel(params) {
+  const pose = new Pose({locateFile: (file) => {
+    return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+  }});
+  pose.setOptions({
+    modelComplexity: 1,
+    smoothLandmarks: true,
+    enableSegmentation: true,
+    smoothSegmentation: true,
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5
+  });
+  pose.onResults(onResults);
+  
+  // suppose we require a full HD video
+  let constraints = { 
+                      audio: false, 
+                      video: true
+                  };
+  
+  let stream = await navigator.mediaDevices.getUserMedia(constraints);
+  let stream_settings = stream.getVideoTracks()[0].getSettings();
+  
+  // actual width & height of the camera video
+  let stream_width = stream_settings.width;
+  let stream_height = stream_settings.height;
+  
+  console.log(`Found camera ${stream_width} x ${stream_height}`)
 
-const camera = new Camera(videoElement, {
-  onFrame: async () => {
-    await pose.send({image: videoElement});
-  },
-  width: WIDTH,
-  height: HEIGHT
-});
-camera.start();
+  setSize(stream_width, stream_height)
+  
+  const camera = new Camera(videoElement, {
+    onFrame: async () => {
+      await pose.send({image: videoElement});
+    },
+    width: WIDTH,
+    height: HEIGHT
+  });
+  camera.start();
+}
+loadModel()
 
 /////////////////// LOADING SCREEN ////////////////////
 
@@ -184,3 +214,4 @@ function createProjectionMatrix() {
 const FAR = 1.0;
 const NEAR = 0.01;
 projMatrix = createProjectionMatrix()
+setSize(1280, 720)
