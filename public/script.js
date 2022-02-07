@@ -6,21 +6,10 @@ const landmarkContainer = document.getElementsByClassName('landmark-grid-contain
 let lastFrame = Date.now();
 let loadingModel = true;
 
-let WIDTH, HEIGHT;
-
-function setSize(width, height) {
-  if(WIDTH == width && HEIGHT == height){
-    return
-  }
-
-  WIDTH = width;
-  HEIGHT = height;
-
-  canvasElement.width = WIDTH;
-  canvasElement.height = HEIGHT;
-
-  projMatrix = createProjectionMatrix()
-}
+const WIDTH = 1280
+const HEIGHT = 720;
+canvasElement.width = WIDTH;
+canvasElement.height = HEIGHT;
 
 function render(frame, landmarks, ctx, flip_x) {
 
@@ -111,32 +100,18 @@ async function loadModel(params) {
     minTrackingConfidence: 0.5
   });
   pose.onResults(onResults);
-  
-  // suppose we require a full HD video
-  let constraints = { 
-                      audio: false, 
-                      video: true
-                  };
-  
-  let stream = await navigator.mediaDevices.getUserMedia(constraints);
-  let stream_settings = stream.getVideoTracks()[0].getSettings();
-  
-  // actual width & height of the camera video
-  let stream_width = stream_settings.width;
-  let stream_height = stream_settings.height;
-  
-  console.log(`Found camera ${stream_width} x ${stream_height}`)
 
-  setSize(stream_width, stream_height)
-  
   const camera = new Camera(videoElement, {
     onFrame: async () => {
+      console.log("Found frame")
       await pose.send({image: videoElement});
     },
     width: WIDTH,
     height: HEIGHT
   });
+  console.log("Starting camera...");
   camera.start();
+  console.log("Camera started!")
 }
 loadModel()
 
@@ -214,4 +189,3 @@ function createProjectionMatrix() {
 const FAR = 1.0;
 const NEAR = 0.01;
 projMatrix = createProjectionMatrix()
-setSize(1280, 720)
