@@ -1,5 +1,12 @@
 const videoElement = document.getElementsByClassName('input_video')[0];
 const canvasElement = document.getElementsByClassName('output_canvas')[0];
+canvasElement.onclick = () => {
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+  } else {
+    canvasElement.requestFullscreen();
+  }
+}
 const canvasCtx = canvasElement.getContext('2d');
 const canvasCtx3d = canvasElement.getContext('webgl');
 const landmarkContainer = document.getElementsByClassName('landmark-grid-container')[0];
@@ -13,7 +20,6 @@ canvasElement.height = HEIGHT;
 
 function render(frame, landmarks, ctx, flip_x) {
 
-    console.log("Rednering frame..")
     // Draw Frame
     if(flip_x) {
         canvasCtx.save();
@@ -24,14 +30,11 @@ function render(frame, landmarks, ctx, flip_x) {
         canvasCtx.drawImage(frame, 0, 0, WIDTH, HEIGHT);
     }
 
-    console.log("Rendered frame")
-
     // If there are no landmarks don't render points
     if(!landmarks){
         return;
     }
 
-    console.log("Drawing points...")
     // Draw points
     ctx.lineWidth = 5;
     landmarks.forEach(e => {
@@ -40,7 +43,6 @@ function render(frame, landmarks, ctx, flip_x) {
         ctx.arc(WIDTH * e.x, HEIGHT * e.y, 5, 0, 2 * Math.PI);
         ctx.stroke();
     })
-    console.log("Drawing connections...")
 
     // Draw connections
     ctx.lineWidth = 2
@@ -59,7 +61,6 @@ function render(frame, landmarks, ctx, flip_x) {
       ctx.lineTo(WIDTH * landmarks[line[1]].x, HEIGHT * landmarks[line[1]].y);
       ctx.stroke();
     })
-    console.log("Rendered")
 }
 
 function drawFPS(ctx){
@@ -90,9 +91,7 @@ function onResults(results) {
     }
 
     render(results.image, results.poseLandmarks, canvasCtx, flip_x);
-    console.log("Drawing FPS")
     drawFPS(canvasCtx);
-    console.log("Drew results")
 }
 
 async function loadModel(params) {
@@ -113,7 +112,6 @@ async function loadModel(params) {
     onFrame: async () => {
       console.log("Found frame")
       await pose.send({image: videoElement});
-      console.log("Processed frame")
     },
     width: WIDTH,
     height: HEIGHT
