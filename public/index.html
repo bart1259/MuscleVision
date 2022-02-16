@@ -15,7 +15,13 @@
   <div class="application">
     <video class="input_video" playsinline></video>
     <canvas class="output_canvas"></canvas>
-    <div class="landmark-grid-container"></div>
+    <div class="controls">
+      <p class="control-child fps-counter">FPS: 0</p>
+      <div style="display:flex; flex-direction:row; flex-flow:flex-start;">
+        <p class="control-child" id="complexity-label">Complexity 1 </p>
+        <input type="range" min="0" max="2" value="1" class="control-child" style="margin: 5px" id="complexity-slider">
+      </div>
+    </div>
   </div>
 
   <!---
@@ -44,6 +50,23 @@
     .input_video {
       width: 0px;
       height: 0px;
+    }
+    .controls {
+      position: absolute;
+    }
+    .control-child {
+      position: relative;
+      align-items: left;
+      text-align: left;
+      z-index: 200;
+      font-size: 30px;
+      font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+      color: rgb(69, 113, 207);
+      -webkit-text-stroke-width: 0.1px;
+      -webkit-text-stroke-color: black;
+    }
+    #complexity-slider {
+      color: rgb(0,255,0);
     }
     canvas {
       margin: 0 auto;
