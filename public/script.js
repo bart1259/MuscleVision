@@ -1,12 +1,5 @@
 const videoElement = document.getElementsByClassName('input_video')[0];
 const canvasElement = document.getElementsByClassName('output_canvas')[0];
-canvasElement.onclick = () => {
-  if (document.fullscreenElement) {
-    document.exitFullscreen();
-  } else {
-    canvasElement.requestFullscreen();
-  }
-}
 const canvasCtx = canvasElement.getContext('2d');
 const canvasCtx3d = canvasElement.getContext('webgl');
 const landmarkContainer = document.getElementsByClassName('landmark-grid-container')[0];
@@ -68,9 +61,7 @@ function drawFPS(ctx){
     let dt = (Date.now() - lastFrame) / 1000.0;
     lastFrame = Date.now()
     let fps = 1 / dt;
-    ctx.font = '25px consolas'
-    ctx.fillStyle = 'rgb(0, 255, 0)'
-    ctx.fillText(`FPS: ${fps.toFixed(1)}`, 10, 26);
+    $('.fps-counter').text(`FPS: ${fps.toFixed(1)}`)
 }
 
 function onResults(results) {
@@ -94,12 +85,13 @@ function onResults(results) {
     drawFPS(canvasCtx);
 }
 
+let pose;
 async function loadModel(params) {
-  const pose = new Pose({locateFile: (file) => {
+  pose = new Pose({locateFile: (file) => {
     return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
   }});
   pose.setOptions({
-    modelComplexity: 0,
+    modelComplexity: 1,
     smoothLandmarks: true,
     enableSegmentation: false,
     smoothSegmentation: true,
@@ -121,6 +113,30 @@ async function loadModel(params) {
   console.log("Camera started!")
 }
 loadModel()
+
+// Put canvas element where needed
+function handleResize() {
+  $('.controls').width(canvasElement.width)
+  $('.controls').height(canvasElement.height)
+  $('.controls').offset($('canvas').offset())
+}
+
+$(document).ready(handleResize);
+$(window).on("resize", handleResize);
+
+// Handle slider
+$('#complexity-slider').change(() => {
+  $('#complexity-label').html("Complexity " + $('#complexity-slider').val())
+  pose.setOptions({
+    modelComplexity: parseInt($('#complexity-slider').val()),
+    smoothLandmarks: true,
+    enableSegmentation: false,
+    smoothSegmentation: true,
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5
+  });
+  pose.onResults(onResults);
+})
 
 /////////////////// LOADING SCREEN ////////////////////
 
