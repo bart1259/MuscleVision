@@ -14,9 +14,9 @@ mp_pose = mp.solutions.pose
 # Folder to store temp frames
 TEMP_FOLDER = "./temp"
 # Output
-OUTPUT_FOLDER = "./output"
+OUTPUT_FOLDER = "./output/Lunges"
 # Video directory to search for video input recursivley
-VIDEO_DIRECTORY = "./videos/"
+VIDEO_DIRECTORY = "./videos/Lunges"
 # Extension to look for
 VIDEO_EXTENSION = "avi"
 
