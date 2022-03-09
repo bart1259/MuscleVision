@@ -69,24 +69,81 @@ function onResults(results) {
       loadingModel = false;
     }
 
-    let flip_x = true;
-    //TODO: Fixme
-    //let flip_x = $('.mirrorXCheckbox').is(":checked");
-
-    //Draw frame
-    if(flip_x && results.poseLandmarks) {
-        results.poseLandmarks.forEach(e => {
-            e.x = 1- e.x;
-            return e;
-        })
+    // Add data to datastructure
+    let dataRow = []
+    if(results.poseLandmarks) {
+      for (let i = 0; i < results.poseLandmarks.length; i++) {
+        dataRow.push(results.poseLandmarks[i].x)
+        dataRow.push(results.poseLandmarks[i].y)
+        dataRow.push(results.poseLandmarks[i].z)
+        dataRow.push(results.poseLandmarks[i].visibility)      
+      }
+    } else {
+      for (let i = 0; i < 132; i++) {
+        dataRow.push(-2.0)
+      }
     }
 
-    render(results.image, results.poseLandmarks, canvasCtx, flip_x);
-    drawFPS(canvasCtx);
+    inputData.unshift(dataRow)
+    inputData.splice(-1,1)
+
+    newData = JSON.parse(JSON.stringify(inputData));
+    for (let i = 8; i < newData.length; i++) {
+      for (let j = 0; j < 132; j++) {
+        newData[i][j] = -2;
+      }
+    }
+
+    // Make input tensor
+    let inTensor = tf.tensor([newData])
+    // Make prediction
+    predictionModel.predict(inTensor).array().then(a => {
+      a = a[0]
+      let max = a.reduce((iMax, x, i, arr) => x > arr[iMax] ? i : iMax, 0);
+      console.log(max + " " + a[0] + " " + a[1] + " " + a[2])
+
+      let flip_x = true;
+      //TODO: Fixme
+      //let flip_x = $('.mirrorXCheckbox').is(":checked");
+  
+      //Draw frame
+      if(flip_x && results.poseLandmarks) {
+          results.poseLandmarks.forEach(e => {
+              e.x = 1- e.x;
+              return e;
+          })
+      }
+  
+      render(results.image, results.poseLandmarks, canvasCtx, flip_x);
+      drawFPS(canvasCtx);
+
+      canvasCtx.font = '100px serif';
+      if(a[max] < 0.4) {
+        canvasCtx.fillText('Bad', 100, 100);
+      } else if(max == 0) {
+        canvasCtx.fillText('Lunge', 100, 100);
+      } else if(max == 1) {
+        canvasCtx.fillText('Squat', 100, 100);
+      } else {
+        canvasCtx.fillText('Pushup', 100, 100);
+      }
+    })
 }
 
 let pose;
+let predictionModel;
+let inputData;
 async function loadModel(params) {
+
+  predictionModel = await tf.loadLayersModel('/model.json');
+  inputData = []
+  for (let i = 0; i < 271; i++) {
+    inputData.push([])
+    for (let j = 0; j < 132; j++) {
+      inputData[i].push(-2.0)      
+    }
+  }
+
   pose = new Pose({locateFile: (file) => {
     return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
   }});
@@ -102,7 +159,6 @@ async function loadModel(params) {
 
   const camera = new Camera(videoElement, {
     onFrame: async () => {
-      console.log("Found frame")
       await pose.send({image: videoElement});
     },
     width: WIDTH,
