@@ -22,6 +22,7 @@
         <p class="control-child" id="complexity-label">Complexity 1 </p>
         <input type="range" min="0" max="2" value="1" class="control-child" style="margin: 5px" id="complexity-slider">
       </div>
+      <p id="prediction">BAD</p>
     </div>
   </div>
 
@@ -78,6 +79,13 @@
         width: 100%; 
         object-fit: contain;
       }
+    }
+
+    #prediction {
+      font-size: 200px;
+      font-family: "Comic Sans MS", "Comic Sans", cursive;
+    	-webkit-text-stroke: 4px #000000;
+      color: red;
     }
   </style>
 </body>

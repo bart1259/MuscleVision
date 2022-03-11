@@ -5,11 +5,19 @@ const canvasCtx3d = canvasElement.getContext('webgl');
 const landmarkContainer = document.getElementsByClassName('landmark-grid-container')[0];
 let lastFrame = Date.now();
 let loadingModel = true;
+let prediction = "Bad"
 
 const WIDTH = 1280
 const HEIGHT = 720;
 canvasElement.width = WIDTH;
 canvasElement.height = HEIGHT;
+
+let b = false;
+document.body.onkeyup = function(e){
+  if(e.keyCode == 32){
+      b = !b
+  }
+}
 
 function render(frame, landmarks, ctx, flip_x) {
 
@@ -26,6 +34,10 @@ function render(frame, landmarks, ctx, flip_x) {
     // If there are no landmarks don't render points
     if(!landmarks){
         return;
+    }
+
+    if (b) {
+      return;
     }
 
     // Draw points
@@ -64,6 +76,7 @@ function drawFPS(ctx){
     $('.fps-counter').text(`FPS: ${fps.toFixed(1)}`)
 }
 
+let frameCount = 0;
 function onResults(results) {
     if(loadingModel) {
       loadingModel = false;
@@ -87,47 +100,54 @@ function onResults(results) {
     inputData.unshift(dataRow)
     inputData.splice(-1,1)
 
-    newData = JSON.parse(JSON.stringify(inputData));
-    for (let i = 8; i < newData.length; i++) {
-      for (let j = 0; j < 132; j++) {
-        newData[i][j] = -2;
+    frameCount++;
+    if(frameCount % 16 == 0) {
+      // Clones the input data array
+      newData = JSON.parse(JSON.stringify(inputData));
+      for (let i = 8; i < newData.length; i++) {
+        for (let j = 0; j < 132; j++) {
+          newData[i][j] = -2;
+        }
       }
+
+      // Make input tensor
+      let inTensor = tf.tensor([newData])
+      // Make prediction
+      predictionModel.predict(inTensor).array().then(a => {
+        a = a[0]
+        let max = a.reduce((iMax, x, i, arr) => x > arr[iMax] ? i : iMax, 0);
+        console.log(max + " " + a[0] + " " + a[1] + " " + a[2] + " " + a[3])
+
+        if(a[max] < 0.4) {
+          prediction = 'Bad'
+        } else if(max == 0) {
+          prediction = 'Lunge'
+        } else if(max == 1) {
+          prediction = 'Squat'
+        } else if (max == 2){
+          prediction = "Pushup"
+        } else {
+          prediction = "Discus"
+        }
+        $("#prediction").html(prediction)
+      })
     }
 
-    // Make input tensor
-    let inTensor = tf.tensor([newData])
-    // Make prediction
-    predictionModel.predict(inTensor).array().then(a => {
-      a = a[0]
-      let max = a.reduce((iMax, x, i, arr) => x > arr[iMax] ? i : iMax, 0);
-      console.log(max + " " + a[0] + " " + a[1] + " " + a[2])
+    let flip_x = true;
+    //TODO: Fixme
+    //let flip_x = $('.mirrorXCheckbox').is(":checked");
 
-      let flip_x = true;
-      //TODO: Fixme
-      //let flip_x = $('.mirrorXCheckbox').is(":checked");
-  
-      //Draw frame
-      if(flip_x && results.poseLandmarks) {
-          results.poseLandmarks.forEach(e => {
-              e.x = 1- e.x;
-              return e;
-          })
-      }
-  
-      render(results.image, results.poseLandmarks, canvasCtx, flip_x);
-      drawFPS(canvasCtx);
-
-      canvasCtx.font = '100px serif';
-      if(a[max] < 0.4) {
-        canvasCtx.fillText('Bad', 100, 100);
-      } else if(max == 0) {
-        canvasCtx.fillText('Lunge', 100, 100);
-      } else if(max == 1) {
-        canvasCtx.fillText('Squat', 100, 100);
-      } else {
-        canvasCtx.fillText('Pushup', 100, 100);
-      }
+    //Draw frame
+    if(flip_x && results.poseLandmarks) {
+      results.poseLandmarks.forEach(e => {
+          e.x = 1- e.x;
+          return e;
     })
+  }
+
+  render(results.image, results.poseLandmarks, canvasCtx, flip_x);
+  drawFPS(canvasCtx);
+  
 }
 
 let pose;
